@@ -8,7 +8,6 @@ import scraperwiki
 import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
-import requests
 
 
 #### FUNCTIONS 1.0
@@ -39,24 +38,26 @@ def validateFilename(filename):
 
 def validateURL(url):
     try:
-        r = requests.get(url, allow_redirects=True, timeout=20)
+        r = urllib2.urlopen(url)
         count = 1
-        while r.status_code == 500 and count < 4:
+        while r.getcode() == 500 and count < 4:
             print ("Attempt {0} - Status code: {1}. Retrying.".format(count, r.status_code))
             count += 1
-            r = requests.get(url, allow_redirects=True, timeout=20)
+            r = urllib2.urlopen(url)
         sourceFilename = r.headers.get('Content-Disposition')
+
         if sourceFilename:
             ext = os.path.splitext(sourceFilename)[1].replace('"', '').replace(';', '').replace(' ', '')
+        elif r.headers['Content-Type'] == 'application/vnd.ms-excel':
+            ext = '.csv'
         else:
             ext = os.path.splitext(url)[1]
-        validURL = r.status_code == 200
-        validFiletype = ext in ['.csv', '.xls', '.xlsx']
+        validURL = r.getcode() == 200
+        validFiletype = ext.lower() in ['.csv', '.xls', '.xlsx']
         return validURL, validFiletype
     except:
         print ("Error validating URL.")
         return False, False
-
 
 def validate(filename, file_url):
     validFilename = validateFilename(filename)
@@ -91,10 +92,10 @@ errors = 0
 data = []
 
 
-#### READ HTML 1.1 - no "lxml"
+#### READ HTML 1.0
 
-html = requests.get(url)
-soup = BeautifulSoup(html.text, 'lxml')
+html = urllib2.urlopen(url)
+soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
@@ -108,7 +109,10 @@ for yR in yRs:
         nextNodes = yR.find_next('ul')
         nextNode = nextNodes.find_all('li')
         for next_link in nextNode:
-            url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            if 'http://' not in next_link.find('a')['href']:
+                url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            else:
+                url = next_link.find('a')['href']
             csvMth = next_link.text.strip().split(' ')[0][:3]
             csvYr = '2015'
             csvMth = convert_mth_strings(csvMth.upper())
@@ -118,7 +122,10 @@ for yR in yRs:
         nextNodes = yR.find_next('ul')
         nextNode = nextNodes.find_all('li')
         for next_link in nextNode:
-            url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            if 'http://' not in next_link.find('a')['href']:
+                url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            else:
+                url = next_link.find('a')['href']
             csvMth = next_link.text.strip().split(' ')[0][:3]
             csvYr = '2014'
             csvMth = convert_mth_strings(csvMth.upper())
@@ -128,7 +135,10 @@ for yR in yRs:
         nextNodes = yR.find_next('ul')
         nextNode = nextNodes.find_all('li')
         for next_link in nextNode:
-            url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            if 'http://' not in next_link.find('a')['href']:
+                url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            else:
+                url = next_link.find('a')['href']
             csvMth = next_link.text.strip().split(' ')[0][:3]
             csvYr = '2013'
             csvMth = convert_mth_strings(csvMth.upper())
@@ -160,6 +170,16 @@ for yR in yRs:
             csvMth = convert_mth_strings(csvMth.upper())
             todays_date = str(datetime.now())
             data.append([csvYr, csvMth, url])
+        for next_link in nextNode[-1:]:
+                if 'http://'  not in next_link.find('a')['href']:
+                    url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+                else:
+                    url = next_link.find('a')['href']
+                csvMth = next_link.text.strip().split(' ')[0][:3]
+                csvYr = '2010'
+                csvMth = convert_mth_strings(csvMth.upper())
+                todays_date = str(datetime.now())
+                data.append([csvYr, csvMth, url])
 
 #### STORE DATA 1.0
 
