@@ -87,7 +87,7 @@ def convert_mth_strings ( mth_string ):
 #### VARIABLES 1.0
 
 entity_id = "E4301_KMBC_gov"
-url = "http://www.knowsley.gov.uk/your-council/accounts,-budgets-and-finances.aspx"
+url = "http://www.knowsley.gov.uk/your-council/accounts,-budgets-and-finances.aspx#Spending"
 errors = 0
 data = []
 
@@ -105,6 +105,32 @@ yRs = block.find_all('h3')
 for yR in yRs:
     csvYr = ''
     csvMth = ''
+    if '2017' in yR.text:
+        nextNodes = yR.find_next('ul')
+        nextNode = nextNodes.find_all('li')
+        for next_link in nextNode:
+            if 'http://' not in next_link.find('a')['href']:
+                url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            else:
+                url = next_link.find('a')['href']
+            csvMth = next_link.text.strip().split(' ')[0][:3]
+            csvYr = '2017'
+            csvMth = convert_mth_strings(csvMth.upper())
+            todays_date = str(datetime.now())
+            data.append([csvYr, csvMth, url])
+    if '2016' in yR.text:
+        nextNodes = yR.find_next('ul')
+        nextNode = nextNodes.find_all('li')
+        for next_link in nextNode:
+            if 'http://' not in next_link.find('a')['href']:
+                url = 'http://www.knowsley.gov.uk' + next_link.find('a')['href']
+            else:
+                url = next_link.find('a')['href']
+            csvMth = next_link.text.strip().split(' ')[0][:3]
+            csvYr = '2016'
+            csvMth = convert_mth_strings(csvMth.upper())
+            todays_date = str(datetime.now())
+            data.append([csvYr, csvMth, url])
     if '2015' in yR.text:
         nextNodes = yR.find_next('ul')
         nextNode = nextNodes.find_all('li')
@@ -202,4 +228,3 @@ if errors > 0:
 
 
 #### EOF
-
